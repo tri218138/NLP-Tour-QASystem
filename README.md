@@ -1,6 +1,6 @@
-# Hệ thống hỏi đáp các chuyến bay
+# Hệ thống hỏi đáp các tour du lịch
 
-Hệ thống hỏi đáp các chuyến bay là đề tài hấp dẫn ứng dụng Xử lý ngôn ngữ tự nhiên để truy vấn dữ liệu và trả lời câu hỏi. Gửi lời cảm ơn đến anh Hoàng Lê Hải Thanh đã hỗ trợ em phần baseline của hệ thống bằng ngôn ngữ tiếng Anh và truy vấn với _WHICH_. Ở phần này, em sẽ cải tiến với ngôn ngữ tiếng Việt và hỗ trợ cho 4 loại câu hỏi _WHICH_, _HOWLONG_, _WHEN_, _YESNO_.
+Hệ thống hỏi đáp các tour du lịch là đề tài hấp dẫn ứng dụng Xử lý ngôn ngữ tự nhiên để truy vấn dữ liệu và trả lời câu hỏi. Gửi lời cảm ơn đến anh Hoàng Lê Hải Thanh đã hỗ trợ em phần baseline của hệ thống bằng ngôn ngữ tiếng Anh và truy vấn với _WHICH_. Ở phần này, em sẽ cải tiến với ngôn ngữ tiếng Việt và hỗ trợ cho 4 loại câu hỏi _WHICH_, _HOWLONG_, _WHEN_, _YESNO_.
 
 -   Co-Author: Doan Tran Cao Tri
 -   University: Ho Chi Minh University of Technology
@@ -10,47 +10,43 @@ Hệ thống hỏi đáp các chuyến bay là đề tài hấp dẫn ứng dụ
 ## 1. Demo
 
 ```
-máy_bay nào xuất_phát từ TP. Hồ_Chí_Minh và  lúc mấy giờ  ?
+đi từ Hồ Chí Minh tới Nha Trang hết bao lâu?
 ```
 
 ```
 -------------Parsed structure-------------
-(S[SEM=<WHQUERY((WHICH(f2) & FLIGHT(f2)),(SOURCE(CITY(NAME('HoChiMinh'))) & LEAVE(AT((WHEN(t3) & HOUR(t3))))))>]
-  (NP[SEM=<(WHICH(f3) & FLIGHT(f3))>]
-    (FLIGHT-CNP[SEM=<\f.FLIGHT(f)>, VAR=<f2>]
-      (FLIGHT-N[SEM=<\f.FLIGHT(f)>, VAR=<f1>] máy_bay))
-    (WHICH-QDET[SEM=<\x.WHICH(x)>] nào))
-  (VP[SEM=<(SOURCE(CITY(NAME('HoChiMinh'))) & LEAVE(AT((WHEN(t2) & HOUR(t2)))))>]
-    (VP[SEM=<SOURCE(CITY(NAME('HoChiMinh')))>, VAR=<LEAVE>]
-      (V[SEM=<LEAVE>] xuất_phát)
-      (PP[SEM=<SOURCE(CITY(NAME('HoChiMinh')))>]
-        từ
-        (CITY-CNP[SEM=<CITY(NAME('HoChiMinh'))>]
-          (CITY-N[SEM=<CITY>, VAR=<c1>] TP.)
-          (CITY-NAME[SEM=<NAME('HoChiMinh')>] Hồ_Chí_Minh))))
-    và
-    (PP[SEM=<AT((WHEN(t3) & HOUR(t3)))>]
-      (P[SEM=<AT>] lúc)
-      (NP[SEM=<(WHEN(t2) & HOUR(t2))>]
-        (WHEN-QDET[SEM=<\t.WHEN(t)>] mấy)
-        (HOUR-N[SEM=<HOUR>, VAR=<t1>] giờ)))))
+(S[GAP=?np, SEM=<WHQUERY(?np,(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t3,n))))>]
+  (VP[SEM=<(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t2,n)))>]
+    (VP[SEM=<(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))))>]
+      (VP[SEM=<SOURCE(TOUR(NAME('HoChiMinh')))>, VAR=?v]
+        (V[] đi)
+        (PP[SEM=<SOURCE(TOUR(NAME('HoChiMinh')))>]
+          (P-LEAVE[SEM=<LEAVE>] từ)
+          (TOUR-CNP[SEM=<TOUR(NAME('HoChiMinh'))>]
+            (TOUR-NAME[SEM=<NAME('HoChiMinh')>] Hồ_Chí_Minh))))
+      (PP[SEM=<DEST(TOUR(NAME('NhaTrang')))>]
+        (P-ARRIVE[SEM=<ARRIVE>] tới)
+        (TOUR-CNP[SEM=<TOUR(NAME('NhaTrang'))>]
+          (TOUR-NAME[SEM=<NAME('NhaTrang')>] Nha_Trang))))
+    (PP[SEM=<IN(\n.HOWLONG(t3,n))>]
+      (P[SEM=<IN>] hết)
+      (NP[SEM=<\n.HOWLONG(t2,n)>]
+        (HOWLONG-QDET[SEM=<\t.HOWLONG(t)>, VAR=<t1>] bao_lâu)))))
 ```
 
 ```
 -------------Parsed logical form-------------
-WHQUERY((WHICH(f2) & FLIGHT(f2)) (SOURCE(CITY(NAME('HoChiMinh'))) & LEAVE(AT((WHEN(t3) & HOUR(t3))))))
+WHQUERY(?np (SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t3 n))))
 ```
 
 ```
 -------------Procedure semantics-------------
-(PRINT-ALL ?f2 (MÁY_BAY ?f2) (ATIME ?f2 ?al ?at) (DTIME ?f2 HCM t3) (RUN-TIME ?f2 HCM ?al ?rt))
-(PRINT-ALL ?t3 (MÁY_BAY ?f2) (ATIME ?f2 ?al ?at) (DTIME ?f2 HCM t3) (RUN-TIME ?f2 HCM ?al ?rt))
+(PRINT-ALL ?t3 (TOUR ?tr) (ATIME ?tr NT ?at) (DTIME ?tr HCM ?dt) (RUN-TIME ?tr HCM NT t3) (BY ?tr ?ve))
 ```
 
 ```
 -------------Retrieved result-------------
-VN1 VJ3 VJ4 VJ2 VN5 VN3
-1:00HR 2:00HR 1:00HR 1:30HR 0:45HR 2:00HR
+5:00HR
 ```
 
 ## 2. Cấu trúc hệ thống
@@ -77,13 +73,13 @@ files khác:
 Use default arguments:
 
 ```sh
-$python3 main.py
+$python3 main.py # for all sample
 ```
 
 Use custom arguments:
 
 ```sh
-$python3 main.py --question [question] --rule_file_name [rule_file_name]
+$python3 main.py --input --question [question] --rule_file_name [rule_file_name]
 ```
 
 Usage:
@@ -94,54 +90,37 @@ Usage:
 Ví dụ
 
 ```sh
-$python3 main.py --rule_file_name=grammar.fcfg --question=1
-$python3 main.py --rule_file_name=grammar.fcfg --question="Có máy bay nào xuất phát từ Hải Phòng không ?"
+$python3 main.py
+$python3 main.py --input --rule_file_name=grammar.fcfg --question=1
+$python3 main.py --input --rule_file_name=grammar.fcfg --question="đi từ Hồ Chí Minh tới Nha Trang hết bao lâu?"
 ```
 
 ## 4. Database
 
 ```
-    "ATIME VN1 HUE 11:00HR",
-    "ATIME VJ1 HUE 13:30HR",
-    "ATIME VN2 HCM 16:30HR",
-    "ATIME VJ2 HN 11:00HR",
-    "ATIME VN3 HN 6:30HR",
-    "ATIME VJ3 HP 11:45HR",
-    "ATIME VN4 ĐN 11:30HR",
-    "ATIME VJ4 ĐN 9:30HR",
-    "ATIME VN5 KH 17:45HR",
-    "ATIME VJ5 KH 10:45HR",
+    'ATIME PQ PQ "9AM 1/7"',
+    'ATIME PQ PQ "10AM 5/7"',
+    'ATIME DN DN "9AM 1/7"',
+    'ATIME DN DN "9AM 4/7"',
+    'ATIME NT NT "12AM 1/7"',
+    'ATIME NT NT "12AM 5/7"',
 
-    "DTIME VN1 HCMC 10:00HR",
-    "DTIME VJ1 HN 12:30HR",
-    "DTIME VN2 ĐN 15:30HR",
-    "DTIME VJ2 ĐN 9:30HR",
-    "DTIME VN3 HCM 4:30HR",
-    "DTIME VJ3 HCMC 9:45HR",
-    "DTIME VN4 HN 9:30HR",
-    "DTIME VJ4 HCMC 8:30HR",
-    "DTIME VN5 HCMC 17:00HR",
-    "DTIME VJ5 HN 9:00",
+    'DTIME NT HCMC "7AM 5/7"',
+    'DTIME NT HCMC "7AM 1/7"',
+    'DTIME DN HCMC "7AM 4/7"',
+    'DTIME PQ HCMC "8AM 5/7"',
+    'DTIME DN HCMC "7AM 1/7"',
+    'DTIME PQ HCMC "7AM 1/7"',
 
-    "RUN-TIME VN1 HCMC HUE 1:00HR",
-    "RUN-TIME VJ3 HCM HP 2:00HR",
-    "RUN-TIME VJ1 HN HUE 1:00HR",
-    "RUN-TIME VN4 HN ĐN 2:00HR",
-    "RUN-TIME VN2 ĐN HCM 1:00HR",
-    "RUN-TIME VJ4 HCM ĐN 1:00HR",
-    "RUN-TIME VJ2 HCMC HN 1:30HR",
-    "RUN-TIME VN5 HCM KH 0:45HR",
-    "RUN-TIME VN3 HCM HP 2:00HR",
-    "RUN-TIME VJ5 HN KH 0:45HR",
+    "RUN-TIME PQ HCM PQ 2:00 HR",
+    "RUN-TIME DN HCM DN 2:00 HR",  # sửa nhầm lẫn so với đề: đề là RUN-TIME DN HCM PQ 2:00 HR
+    "RUN-TIME NT HCM NT 5:00 HR",  # sửa nhầm lẫn so với đề: đề là RUN-TIME NT HCM PQ 5:00 HR
 
-    "MÁY_BAY VN1",
-    "MÁY_BAY VN2",
-    "MÁY_BAY VN3",
-    "MÁY_BAY VN4",
-    "MÁY_BAY VN5",
-    "MÁY_BAY VJ1",
-    "MÁY_BAY VJ2",
-    "MÁY_BAY VJ3",
-    "MÁY_BAY VJ4",
-    "MÁY_BAY VJ5",
+    "TOUR PQ Phú_Quốc",
+    "TOUR DN Đà_Nẵng",
+    "TOUR NT Nha_Trang",
+
+    "BY PQ airplane",
+    "BY DN airplane",
+    "BY NT train",
 ```
