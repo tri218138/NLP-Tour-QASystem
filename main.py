@@ -19,7 +19,9 @@ import argparse
 
 from Models.nlp_parser import parse_to_procedure
 from Models.nlp_data import retrieve_result
-from Models.nlp_file import write_file
+from Models.nlp_file import write_file, write_file2
+from Input.database import post_process_results
+from Input.query import customer_queries
 
 
 def main(args):
@@ -60,6 +62,7 @@ def main(args):
     print("-------------Retrieved result-------------")
     for index, procedure_semantic in enumerate(procedure_semantics):
         results = retrieve_result(procedure_semantic)
+        results = post_process_results(results)
         if len(results) == 0:
             print("No result found!")
         else:
@@ -68,25 +71,34 @@ def main(args):
             print("")
             write_file(6, " ".join(results) + "\n", index)
 
+            if not args.input:
+                write_file2(
+                    f"output/p2-q-{args.id}.txt", " ".join(results) + "\n", index
+                )
+
 
 FIX_WORDS = [
-    "máy bay",
-    "mã hiệu",
-    "thành phố",
-    "hãng hàng không",
-    "xuất phát",
-    "khởi hành",
-    "hạ cánh",
-    "VietJet Air",
+    "có thể",
+    "nhắc lại",
+    "tất cả",
+    "được không",
+    "Phú Quốc",
     "Hồ Chí Minh",
     "Đà Nẵng",
-    "Hà Nội",
-    "Khánh Hòa",
-    "Hải Phòng",
-    "thời gian",
-    "phải không",
+    "Nha Trang",
     "bao lâu",
+    "bao nhiêu",
+    "phương tiện",
+    "lịch trình",
+    "bao gồm",
+    "xuất phát",
+    "thời gian",
+    "sử dụng",
+    "phương tiện",
+    "tàu hỏa",
+    "máy bay",
 ]
+STOP_WORDS = ["em", "có thể", "được không", "vậy", "bạn", "nhỉ"]
 
 
 def preprocess_query(query: str):
@@ -95,51 +107,58 @@ def preprocess_query(query: str):
     query = re.sub(r",", " và ", query)
     query = re.sub(r"\?", " ? ", query)
     query = re.sub(r" HR", "HR", query)
+
+    for word in STOP_WORDS:
+        query = re.sub(word, "", query)
     for word in FIX_WORDS:
         query = re.sub(word, word.replace(" ", "_"), query)
     return query
 
 
 def get_query(index: str = "1"):
-    """
-    start from 1
-    """
-    return {
-        0: "",
-        1: "Máy bay nào đến thành phố Huế lúc 13:30HR ?",
-        1.1: "Máy bay nào khởi hành lúc 13:30HR đến thành phố Huế?",
-        2: "Máy bay nào bay từ Đà Nẵng đến TP. Hồ Chí Minh mất 1 giờ ?",
-        3: "Máy bay nào bay từ TP.Hồ Chí Minh đến Hà Nội ?",
-        4: "Hãy cho biết mã hiệu các máy bay hạ cánh ở Huế ?",
-        5: "Máy bay nào bay từ TP. Hồ Chí Minh đến Đà Nẵng mất 1:00 HR ?",
-        6: "Máy bay của hãng hàng không VietJet Air bay đến những thành phố nào ?",
-        7: "Thời gian máy bay VJ5 bay từ TP. Hà Nội đến Khánh Hòa mất mấy giờ ?",
-        8: "Máy bay từ Hà Nội đến Khánh Hòa bay trong bao lâu?",
-        8.1: "Máy bay bay từ Hà Nội đến Khánh Hòa trong bao lâu?",
-        9: "Máy bay VJ1 xuất phát từ HCMC 10:00HR phải không ?",
-        9.1: "Máy bay VN1 xuất phát từ HCMC 10:00HR phải không ?",
-        10: "Máy bay VN4 có xuất phát từ Đà Nẵng không ?",
-        11: "Có máy bay nào xuất phát từ Hải Phòng không ?",
-        11.1: "Có máy bay nào xuất phát từ Hà Nội không ?",
-        12: "Có máy bay nào bay từ Hải Phòng đến Khánh Hòa không?",
-        13: "Máy bay nào xuất phát từ Tp.Hồ Chí Minh, lúc mấy giờ ?",
-        13.1: "Máy bay nào xuất phát từ Tp.Hồ Chí Minh, xuất phát lúc mấy giờ ?",
-    }.get(float(index), 0.0)
+    try:
+        return customer_queries[int(index) - 1]
+    except:
+        return {
+            "0": "",
+            # "1": "em có thể nhắc lại tất cả các tour được không?",  # Phú_Quốc Đà_Nẵng Nha_Trang
+            # "2": "đi từ Hồ Chí Minh tới Nha Trang hết bao lâu?",  # 5:00HR
+            # "3": "đi từ Hồ Chí Minh tới Đà Nẵng hết bao lâu?",  # 2:00HR
+            # "4": "có bao nhiêu tour đi Phú Quốc vậy bạn?",  # 1
+            # "5": "tour Nha Trang đi bằng phương tiện gì vậy?",  # train
+            # "6": "đi Nha Trang có những ngày nào nhỉ?",  # 1/7 5/7
+            "7": "Lịch trình tour Phú Quốc bao gồm những ngày nào?",
+            "8": "Địa điểm xuất phát và đến của tour Đà Nẵng là gì?",
+            "9": "Thời gian đi và đến của tour Nha Trang như thế nào?",
+            "10": "Có bao nhiêu tour sử dụng phương tiện đi lại bằng máy bay?",  # 2
+            "11": "Tour nào có thời gian đi sớm nhất?",
+            "12": "Có bao nhiêu tour sử dụng phương tiện đi lại bằng tàu hỏa?",  # 1
+            "13": "Tour nào xuất phát từ Phú Quốc?",  # No result found!
+            "14": "Thời gian đi và đến của tour Hồ Chí Minh - Phú Quốc là bao lâu?",
+            "15": "Tour nào có thời gian đi trễ nhất?",
+            "16": "Có tour nào xuất phát từ Đà Nẵng không?",  # False # No result found!
+        }.get(index, "0")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NLP Assignment Command Line")
 
     parser.add_argument(
+        "--input",
+        action="store_true",
+        help="Run all customer queries instead per one",
+    )
+
+    parser.add_argument(
         "--id",
         default=-1,
-        help="Question to be parsed. Default = 'Máy bay nào đến thành phố Huế lúc 13:30HR ?'",
+        help="Question to be parsed. Default = 'em có thể nhắc lại tất cả các tour được không?'",
     )
 
     parser.add_argument(
         "--question",
-        default=get_query(1),
-        help="Question to be parsed. Default = 'Máy bay nào đến thành phố Huế lúc 13:30HR ?'",
+        default=get_query("1"),
+        help="Question to be parsed. Default = 'em có thể nhắc lại tất cả các tour được không?'",
     )
 
     parser.add_argument(
@@ -149,10 +168,17 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    try:
-        args.question = get_query(args.question)
-    except:
-        pass
-    args.question = preprocess_query(args.question)
-    # print(args.question)
-    main(args)
+
+    if not args.input:
+        for idx, ques in enumerate(customer_queries):
+            args.id = idx + 1
+            args.question = preprocess_query(ques)
+            main(args)
+    else:
+        try:
+            args.question = get_query(args.question)
+        except:
+            pass
+        args.question = preprocess_query(args.question)
+        # print(args.question)
+        main(args)

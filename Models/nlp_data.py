@@ -4,7 +4,7 @@ If there are any problems, contact me at mail@hoanglehaithanh.com or 1413492@hcm
 This project is under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) (Inherit from NLTK)
 """
 
-from Input.database import raw_database
+from Input.database import raw_database, preprocess_database
 
 
 def categorize_database(database):
@@ -15,8 +15,8 @@ def categorize_database(database):
         database: raw database from assignments (List of string values)
     """
     # Remove ( )
-    flights = [
-        data.replace("(", "").replace(")", "") for data in database if "MÁY_BAY" in data
+    tours = [
+        data.replace("(", "").replace(")", "") for data in database if "TOUR" in data
     ]
     arrival_times = [
         data.replace("(", "").replace(")", "") for data in database if "ATIME" in data
@@ -29,55 +29,63 @@ def categorize_database(database):
         for data in database
         if "RUN-TIME" in data
     ]
+    by_vehicles = [
+        data.replace("(", "").replace(")", "") for data in database if "BY" in data
+    ]
 
     return {
-        "flights": flights,
+        "tours": tours,
         "arrival": arrival_times,
         "departure": departure_times,
         "run_time": run_times,
+        "by": by_vehicles,
     }
 
 
 class ReturnType:
-    Flight = "flight"
+    Tour = "tour"
     Location = "location"
     Time = "time"
+    Vehicle = "vehicle"
     YesNo = "yes/no"
-    ArrivalTime = "arrival_time"
-    DepartureTime = "departure_time"
+    Number = "number"
 
 
-def retrieve_flight(database, procedure_semantics):
-    flight_check_result = [
-        f.split()[1] for f in database["flights"] if procedure_semantics["flight"] in f
+def retrieve_tour(database, procedure_semantics):
+    by_vehicle_result = [
+        f.split()[1] for f in database["by"] if procedure_semantics["by"] in f
     ]
 
-    arrival_flight_result = [
+    tour_check_result = [
+        f.split()[1] for f in database["tours"] if f.split()[1] in by_vehicle_result
+    ]
+
+    arrival_tour_result = [
         a.split()[1]
         for a in database["arrival"]
         if procedure_semantics["aloc"] in a
         and procedure_semantics["atime"] in a
-        and a.split()[1] in flight_check_result
+        and a.split()[1] in tour_check_result
     ]
 
-    departure_flight_result = [
+    departure_tour_result = [
         d.split()[1]
         for d in database["departure"]
         if procedure_semantics["dloc"] in d
         and procedure_semantics["dtime"] in d
-        and d.split()[1] in arrival_flight_result
+        and d.split()[1] in arrival_tour_result
     ]
 
-    run_flight_result = [
+    run_tour_result = [
         r.split()[1]
         for r in database["run_time"]
         if (procedure_semantics["dloc"] in r.split()[2])
         and (procedure_semantics["aloc"] in r.split()[3])
         and (procedure_semantics["runtime"] in r)
-        and (r.split()[1] in departure_flight_result)
+        and (r.split()[1] in departure_tour_result)
     ]
 
-    run_flight_result2 = [
+    run_tour_result2 = [
         r.split()[1]
         for r in database["run_time"]
         if (procedure_semantics["dloc"] in r.split()[2])
@@ -85,29 +93,40 @@ def retrieve_flight(database, procedure_semantics):
         and (procedure_semantics["runtime"] in r)
     ]
 
-    if run_flight_result != []:
-        return run_flight_result
+    if run_tour_result != []:
+        return run_tour_result
     else:
-        return run_flight_result2
+        return run_tour_result2
+
+
+def retrieve_vehicle(database, procedure_semantics):
+    vehicle_check_result = [
+        f.split()[2] for f in database["by"] if procedure_semantics["tour"] in f
+    ]
+
+    return vehicle_check_result
 
 
 def retrieve_time(database, procedure_semantics):
-    arrival_time_result = [
-        a.split()[3]
-        for a in database["arrival"]
-        if procedure_semantics["flight"] in a and procedure_semantics["aloc"] in a
-    ]
+    if procedure_semantics["command"] == "PRINT-ALL-RANGE":
+        arrival_time_result = [
+            a.split()[3]
+            for a in database["arrival"]
+            if procedure_semantics["tour"] in a and procedure_semantics["aloc"] in a
+        ]
 
-    departure_time_result = [
-        d.split()[3]
-        for d in database["departure"]
-        if procedure_semantics["flight"] in d and procedure_semantics["dloc"] in d
-    ]
+        departure_time_result = [
+            d.split()[3]
+            for d in database["departure"]
+            if procedure_semantics["tour"] in d and procedure_semantics["dloc"] in d
+        ]
+
+        return arrival_time_result + departure_time_result
 
     run_time_result = [
         r.split()[4]
         for r in database["run_time"]
-        if procedure_semantics["flight"] in r.split()[1]
+        if procedure_semantics["tour"] in r.split()[1]
         if procedure_semantics["dloc"] in r.split()[2]
         and procedure_semantics["aloc"] in r.split()[3]
     ]
@@ -120,7 +139,7 @@ def retrieve_location(database, procedure_semantics):
         arrival_loc_result = [
             a.split()[2]
             for a in database["arrival"]
-            if procedure_semantics["flight"] in a and procedure_semantics["atime"] in a
+            if procedure_semantics["tour"] in a and procedure_semantics["atime"] in a
         ]
 
         return arrival_loc_result
@@ -129,7 +148,7 @@ def retrieve_location(database, procedure_semantics):
         departure_loc_result = [
             d.split()[2]
             for d in database["departure"]
-            if procedure_semantics["flight"] in d and procedure_semantics["dtime"] in d
+            if procedure_semantics["tour"] in d and procedure_semantics["dtime"] in d
         ]
 
         return departure_loc_result
@@ -143,18 +162,23 @@ def retrieve_result(semantics):
         semantics: dictionary created from nlp_parser.parse_to_procedure()
     """
     procedure_semantics = semantics
-    database = categorize_database(raw_database)
+    # print("semantics")
+    # print(semantics)
+    _database = preprocess_database(raw_database)
+    # print(_database)
+    database = categorize_database(_database)
 
     query = procedure_semantics["variable"]
     command = procedure_semantics["command"]
-    if "?f" in query and command == "PRINT-ALL":
-        result_type = ReturnType.Flight
-    elif "?c" in query and command == "PRINT-ALL":
+
+    if "?n" in query:  # noun
+        result_type = ReturnType.Tour
+    elif "?c" in query:
         result_type = ReturnType.Location
-    elif "?t" in query and command == "PRINT-ALL":
+    elif "?t" in query or "?d" in query:  # time, day, hour
         result_type = ReturnType.Time
-    elif command == "FIND-ONE-TRUE":
-        result_type = ReturnType.YesNo
+    elif "?v" in query:  # vehicle
+        result_type = ReturnType.Vehicle
 
     # remove unknown args: ?t ?f ?s
     for arg in list(procedure_semantics.keys()):
@@ -164,16 +188,32 @@ def retrieve_result(semantics):
             # arrive or depart time
             procedure_semantics[arg] = ""
 
-    # print(procedure_semantics)
-    # Iterate after FLIGHT, ATIME and DTIME to have result
+    if command == "PRINT-ALL-RANGE":
+        aloc, dloc = procedure_semantics["aloc"], procedure_semantics["dloc"]
+        dloc = aloc if aloc != "" else dloc
+        aloc = dloc if dloc != "" else aloc
+        procedure_semantics["aloc"], procedure_semantics["dloc"] = aloc, dloc
+    print("procedure_semantics for retrieve")
+    print(procedure_semantics)
 
-    if result_type == ReturnType.Flight:
-        result = retrieve_flight(database, procedure_semantics)
+    if result_type == ReturnType.Tour:
+        result = retrieve_tour(database, procedure_semantics)
     elif result_type == ReturnType.Location:
         result = retrieve_location(database, procedure_semantics)
     elif result_type == ReturnType.Time:
         result = retrieve_time(database, procedure_semantics)
-    if result_type == ReturnType.YesNo:
-        result = [str(retrieve_flight(database, procedure_semantics) != [])]
+    elif result_type == ReturnType.Vehicle:
+        result = retrieve_vehicle(database, procedure_semantics)
+
+    if command == "PRINT-ALL":
+        return result
+    elif command == "FIND-ONE-TRUE":
+        return [str(result != [])]
+    elif command == "PRINT-ALL-NUMBER":
+        return [str(len(result))]
+    elif command == "PRINT-ALL-RANGE":
+        if "?d" in query and result_type == ReturnType.Time:
+            result = [t.split("_")[1] for t in result]
+        return [min(result), max(result)]
 
     return result

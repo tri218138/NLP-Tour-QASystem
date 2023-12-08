@@ -4,13 +4,6 @@ If there are any problems, contact me at mail@hoanglehaithanh.com or 1413492@hcm
 This project is under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) (Inherit from NLTK)
 """
 
-"""
-(MÁY_BAY M1) => (MÁY_BAY ?f)
-(ATIME VN1 HUE 11:00HR) => (ATIME ?f ?al ?at)
-(DTIME VN1 HCMC 10:00HR) => (DTIME ?f ?dl ?dt)
-(RUN-TIME VN1 HCMC HUE 1:00 HR) => (RUN-TIME ?f ?dl ?al ?rt)
-"""
-from copy import copy
 from nltk.sem.logic import (
     AndExpression,
     Variable,
@@ -20,6 +13,12 @@ from nltk.sem.logic import (
 )
 
 
+def concat_dictionary(d1, d2):
+    for key, value in d2.items():
+        d1[key] = value
+    return d1
+
+
 def postprocess_location(location):
     location = str(location)
     if location == "'Hue'":
@@ -27,13 +26,17 @@ def postprocess_location(location):
     if location == "'HoChiMinh'":
         return "HCM"
     if location == "'DaNang'":
-        return "ĐN"
+        return "DN"
     if location == "'HaNoi'":
         return "HN"
     if location == "'HaiPhong'":
         return "HP"
     if location == "'KhanhHoa'":
         return "KH"
+    if location == "'NhaTrang'":
+        return "NT"
+    if location == "'PhuQuoc'":
+        return "PQ"
 
 
 def add_query(query: list, expr):
@@ -42,6 +45,26 @@ def add_query(query: list, expr):
     else:
         query.append(expr)
     return query
+
+
+def apply_virtual_variable_lambda_expr(expr):
+    if type(expr) is LambdaExpression:
+        expr = ApplicationExpression(
+            expr, FunctionVariableExpression(Variable("x"))
+        ).simplify()
+    return expr
+
+
+def split_application_expr_from_lambda_expr(_expr):
+    exprs = []
+    expr = _expr
+    while type(expr) is AndExpression:
+        expr.second = apply_virtual_variable_lambda_expr(expr.second)
+        exprs.append(expr.second)
+        expr = expr.first
+    expr = apply_virtual_variable_lambda_expr(expr)
+    exprs.append(expr)
+    return exprs
 
 
 def parse_to_procedure(logical_tree):
@@ -54,58 +77,70 @@ def parse_to_procedure(logical_tree):
     logical_expr = logical_tree.label()["SEM"]
     # print("====== logical_expr =====")
 
-    f = "?f"
+    tr = "?tr"  # tour
     aloc = "?al"
     dloc = "?dl"
     atime = "?at"
     dtime = "?dt"
     runtime = "?rt"
+    by = "?ve"  # by vehicle
+    variable = "?"
+
+    np_expr, vp_expr = logical_expr.args
+
     query = ["WHICH"]  # default
     if str(logical_expr.pred) == "YNQUERY":
         query = add_query(query, logical_expr)
-    np_expr, vp_expr = logical_expr.args
     # apply variable to lambda function
-    if type(np_expr) is LambdaExpression:
-        np_expr = ApplicationExpression(
-            np_expr, FunctionVariableExpression(Variable("f"))
-        ).simplify()
+    np_expr = apply_virtual_variable_lambda_expr(np_expr)
+    vp_expr = apply_virtual_variable_lambda_expr(vp_expr)
 
     ##### NP #####
-    exprs = []
-    expr = np_expr
-    while type(expr) is AndExpression:
-        if type(expr.second) is LambdaExpression:
-            expr.second = ApplicationExpression(
-                expr.second, FunctionVariableExpression(Variable("f"))
-            ).simplify()
-        exprs.append(expr.second)
-        expr = expr.first
-    if type(expr) is LambdaExpression:
-        expr = ApplicationExpression(
-            expr, FunctionVariableExpression(Variable("f"))
-        ).simplify()
-    exprs.append(expr)
+    exprs = split_application_expr_from_lambda_expr(np_expr)
     for expr in exprs:
+        if not isinstance(expr, ApplicationExpression):
+            print("Not Application Type => Continue")
+            continue
         pred = str(expr.pred)
-        if pred == "FLIGHT":
+        if pred == "TOUR":
             if expr.constants():
-                f = list(expr.constants())[0].name[1:-1]
+                tr = postprocess_location(list(expr.constants())[0].name)
             else:
-                f = "?" + list(expr.variables())[0].name
+                tr = list(expr.variables())[0].name
+        elif pred == "ALL":
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if "TOUR" in expr_preds + expr_const:
+                tr = expr_vars[0]
+                variable = expr_vars[0] if variable == "?" else variable
         elif pred == "SOURCE":
             if expr.constants():
                 dloc = postprocess_location(list(expr.constants())[0].name)
         elif pred == "DEST":
             if expr.constants():
                 aloc = postprocess_location(list(expr.constants())[0].name)
-
-    for expr in exprs:
-        pred = str(expr.pred)
-        if pred == "AIRLINE":
-            if expr.constants():
-                f = list(expr.constants())[0].name[1:-1]
-                if f == "VietJetAir":
-                    f = "VJ"
+        elif pred == "HOWMANY":
+            query = add_query(query, "HOWMANY")
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if "TOUR" in expr_preds + expr_const:
+                tr = expr_vars[0]
+                variable = expr_vars[0]
+        elif pred == "WHICH":
+            query = add_query(query, "WHICH")
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if "DAY" in expr_preds + expr_const:
+                by = expr_vars[0]
+                variable = expr_vars[0]
+                atime = variable if atime == "?at" else atime
+                dtime = variable if dtime == "?dt" else dtime
+            if "TOUR" in expr_preds + expr_const:
+                tr = expr_vars[0]
+                variable = expr_vars[0]
 
     for expr in exprs:
         for index, pred in enumerate(expr.predicates()):
@@ -113,13 +148,11 @@ def parse_to_procedure(logical_tree):
                 query = add_query(query, expr)
 
     ##### VP #####
-    exprs = []
-    expr = vp_expr
-    while type(expr) is AndExpression:
-        exprs.append(expr.second)
-        expr = expr.first
-    exprs.append(expr)
+    exprs = split_application_expr_from_lambda_expr(vp_expr)
     for expr in exprs:
+        if not isinstance(expr, ApplicationExpression):
+            print("Not Application Type => Continue")
+            continue
         pred = str(expr.pred)
         if pred == "SOURCE":
             if expr.constants():
@@ -155,75 +188,84 @@ def parse_to_procedure(logical_tree):
                     query = add_query(query, arg)
             # print(query[0].pred)
         elif pred == "IN":
-            if expr.constants():
-                runtime = list(expr.constants())[0].name[1:-1]
-            else:
-                for arg in expr.args:
-                    while type(arg) is AndExpression:
-                        if str(arg.second.pred) == "HOUR":
-                            runtime = list(arg.second.variables())[0].name
-                        elif str(arg.second.pred) == "WHEN":
-                            query = add_query(query, arg.second)
-                        elif str(arg.second.pred) == "HOWLONG":
-                            query = add_query(query, arg.second)
-                        arg = arg.first
-                    if str(arg.pred) == "HOUR":
-                        runtime = list(arg.variables())[0].name
-                    elif str(arg.pred) == "WHEN":
-                        query = add_query(query, arg)
-                    elif str(arg.pred) == "HOWLONG":
-                        query = add_query(query, arg)
-                # print(query[0].pred)
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if "HOWLONG" in expr_preds:
+                query = add_query(query, "HOWLONG")
+                if "HOUR" in expr_const:
+                    runtime = expr_vars[0]
+                    variable = expr_vars[0]
+                else:
+                    runtime = expr_vars[0]
+                    variable = expr_vars[0]
 
-    for expr in exprs:
-        pred = str(expr.pred)
-        if pred == "AT" and dloc != "?dl":
-            dtime = list(expr.constants())[0].name[1:-1]
-        if pred == "AT" and aloc != "?al":
-            atime = list(expr.constants())[0].name[1:-1]
+        elif pred == "WHICH":
+            query = add_query(query, "WHICH")
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if "DAY" in expr_preds + expr_const:
+                variable = expr_vars[0]
+                if "PLURAL" in expr_preds + expr_const:
+                    query[-1] = "WHICH-PLURAL"
+                    continue
+                atime = variable if atime == "?at" else atime
+                dtime = variable if dtime == "?dt" else dtime
 
-    if type(query[0]) is str:
-        for expr in exprs:
-            for index, pred in enumerate(expr.predicates()):
-                if pred.name in ["WHICH", "WHEN", "HOWLONG"]:
-                    query = add_query(query, expr)
-
-    flight = "(MÁY_BAY {})".format(f)
-    arrival_time = "(ATIME {} {} {})".format(f, aloc, atime)
-    departure_time = "(DTIME {} {} {})".format(f, dloc, dtime)
-    run_time = "(RUN-TIME {} {} {} {})".format(f, dloc, aloc, runtime)
+        elif pred == "BY":
+            expr_vars = [var.name for var in list(expr.variables())]
+            expr_const = [var.name for var in list(expr.constants())]
+            expr_preds = [var.name for var in list(expr.predicates())]
+            if len(expr_const):
+                if "VEHICLE" in expr_preds:
+                    by = expr_const[0][1:-1]
+            # print(expr_vars, expr_const, expr_preds)
+            if "WHICH" in expr_preds:
+                query = add_query(query, "WHICH")
+                if "VEHICLE" in expr_const:
+                    by = expr_vars[0]
+                    variable = expr_vars[0]
+    tour = "(TOUR {})".format(tr)
+    arrival_time = "(ATIME {} {} {})".format(tr, aloc, atime)
+    departure_time = "(DTIME {} {} {})".format(tr, dloc, dtime)
+    run_time = "(RUN-TIME {} {} {} {})".format(tr, dloc, aloc, runtime)
+    by_vehicle = "(BY {} {})".format(tr, by)
 
     ret = []
     # print(query)
     for index in range(len(query)):
         key = query[index] if isinstance(query[index], str) else str(query[index].pred)
-        command = {
+        _command = {
             "WHICH": "PRINT-ALL",
+            "WHICH-PLURAL": "PRINT-ALL-RANGE",
             "WHEN": "PRINT-ALL",
             "HOWLONG": "PRINT-ALL",
+            "HOWMANY": "PRINT-ALL-NUMBER",
             "YNQUERY": "FIND-ONE-TRUE",
         }[key]
-        try:
-            variable = "?" + list(query[index].variables())[0].name
-        except:
-            try:
-                variable = "?" + list(np_expr.variables())[0].name
-            except:
-                variable = ""
-        procedure = "({} {} {} {} {} {})".format(
-            command, variable, flight, arrival_time, departure_time, run_time
+        _variable = "?" + variable
+        procedure = "({} {} {} {} {} {} {})".format(
+            _command,
+            _variable,
+            tour,
+            arrival_time,
+            departure_time,
+            run_time,
+            by_vehicle,
         )
         ret.append(
             {
                 "procedure": procedure,
-                "command": command,
-                "variable": variable,
-                "flight": f,
+                "command": _command,
+                "variable": _variable,
+                "tour": tr,
                 "atime": atime,
                 "dtime": dtime,
                 "aloc": aloc,
                 "dloc": dloc,
                 "runtime": runtime,
+                "by": by,
             }
         )
 

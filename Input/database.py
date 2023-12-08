@@ -1,42 +1,52 @@
+import re
+
 raw_database = [
-    "ATIME VN1 HUE 11:00HR",
-    "ATIME VJ1 HUE 13:30HR",
-    "ATIME VN2 HCM 16:30HR",
-    "ATIME VJ2 HN 11:00HR",
-    "ATIME VN3 HN 6:30HR",
-    "ATIME VJ3 HP 11:45HR",
-    "ATIME VN4 ĐN 11:30HR",
-    "ATIME VJ4 ĐN 9:30HR",
-    "ATIME VN5 KH 17:45HR",
-    "ATIME VJ5 KH 10:45HR",
-    "DTIME VN1 HCMC 10:00HR",
-    "DTIME VJ1 HN 12:30HR",
-    "DTIME VN2 ĐN 15:30HR",
-    "DTIME VJ2 ĐN 9:30HR",
-    "DTIME VN3 HCM 4:30HR",
-    "DTIME VJ3 HCMC 9:45HR",
-    "DTIME VN4 HN 9:30HR",
-    "DTIME VJ4 HCMC 8:30HR",
-    "DTIME VN5 HCMC 17:00HR",
-    "DTIME VJ5 HN 9:00",
-    "RUN-TIME VN1 HCMC HUE 1:00HR",
-    "RUN-TIME VJ3 HCM HP 2:00HR",
-    "RUN-TIME VJ1 HN HUE 1:00HR",
-    "RUN-TIME VN4 HN ĐN 2:00HR",
-    "RUN-TIME VN2 ĐN HCM 1:00HR",
-    "RUN-TIME VJ4 HCM ĐN 1:00HR",
-    "RUN-TIME VJ2 HCMC HN 1:30HR",
-    "RUN-TIME VN5 HCM KH 0:45HR",
-    "RUN-TIME VN3 HCM HP 2:00HR",
-    "RUN-TIME VJ5 HN KH 0:45HR",
-    "MÁY_BAY VN1",
-    "MÁY_BAY VN2",
-    "MÁY_BAY VN3",
-    "MÁY_BAY VN4",
-    "MÁY_BAY VN5",
-    "MÁY_BAY VJ1",
-    "MÁY_BAY VJ2",
-    "MÁY_BAY VJ3",
-    "MÁY_BAY VJ4",
-    "MÁY_BAY VJ5",
+    'ATIME PQ PQ "9AM 1/7"',
+    'ATIME PQ PQ "10AM 5/7"',
+    'ATIME DN DN "9AM 1/7"',
+    'ATIME DN DN "9AM 4/7"',
+    'ATIME NT NT "12AM 1/7"',
+    'ATIME NT NT "12AM 5/7"',
+    'DTIME NT HCMC "7AM 5/7"',
+    'DTIME NT HCMC "7AM 1/7"',
+    'DTIME DN HCMC "7AM 4/7"',
+    'DTIME PQ HCMC "8AM 5/7"',
+    'DTIME DN HCMC "7AM 1/7"',
+    'DTIME PQ HCMC "7AM 1/7"',
+    "RUN-TIME PQ HCM PQ 2:00 HR",
+    "RUN-TIME DN HCM DN 2:00 HR",  # sửa nhầm lẫn so với đề: đề là RUN-TIME DN HCM PQ 2:00 HR
+    "RUN-TIME NT HCM NT 5:00 HR",  # sửa nhầm lẫn so với đề: đề là RUN-TIME NT HCM PQ 5:00 HR
+    "TOUR PQ Phú_Quốc",
+    "TOUR DN Đà_Nẵng",
+    "TOUR NT Nha_Trang",
+    "BY PQ airplane",
+    "BY DN airplane",
+    "BY NT train",
 ]
+
+
+def preprocess_database(database):
+    for idx, ds in enumerate(database):
+        # Remove double quotes
+        ds = re.sub(r'"', "", ds)
+        # Replace space between time components with underscore
+        ds = re.sub(r"(\d+)([APMapm]+) (\d+)/(\d+)", r"\1\2_\3/\4", ds)
+        ds = re.sub(r"(\d+):(\d+) HR", r"\1:\2HR", ds)
+        database[idx] = ds
+    return database
+
+
+def post_process_results(results: []):
+    for idx, res in enumerate(results):
+        res = re.sub(r"PQ", "Phú_Quốc", res)
+        res = re.sub(r"DN", "Đà_Nẵng", res)
+        res = re.sub(r"NT", "Nha_Trang", res)
+        res = re.sub(r"HCM", "Hồ_Chí_Minh", res)
+        res = re.sub(r"HCMC", "Hồ_Chí_Minh", res)
+
+        results[idx] = res
+    return results
+
+
+if __name__ == "__main__":
+    database = preprocess_database(raw_database)

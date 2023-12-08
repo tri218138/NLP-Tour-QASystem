@@ -1,1 +1,1 @@
-(PRINT-ALL ?f2 (MÁY_BAY ?f2) (ATIME ?f2 ?al ?at) (DTIME ?f2 HCM t3) (RUN-TIME ?f2 HCM ?al ?rt))(PRINT-ALL ?t3 (MÁY_BAY ?f2) (ATIME ?f2 ?al ?at) (DTIME ?f2 HCM t3) (RUN-TIME ?f2 HCM ?al ?rt))
+(PRINT-ALL-RANGE ?d2 (TOUR ?tr) (ATIME ?tr NT ?at) (DTIME ?tr ?dl ?dt) (RUN-TIME ?tr ?dl NT ?rt) (BY ?tr ?ve))

@@ -30,3 +30,13 @@ def write_file(question_number, content, append=False):
     )
     file.write(content)
     file.close()
+
+
+def write_file2(file_name_path, content, append=False):
+    file = open(
+        file_name_path,
+        "a" if append else "w",
+        encoding="utf-8",
+    )
+    file.write(content)
+    file.close()
