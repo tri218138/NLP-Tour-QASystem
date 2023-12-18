@@ -17,11 +17,11 @@ import re
 from nltk import grammar, parse
 import argparse
 
-from Models.nlp_parser import parse_to_procedure
-from Models.nlp_data import retrieve_result
-from Models.nlp_file import write_file, write_file2
-from Input.database import post_process_results
-from Input.query import customer_queries
+from models.nlp_parser import parse_to_procedure
+from models.nlp_data import retrieve_result
+from models.nlp_file import write_file, write_file2
+from input.database import post_process_results
+from input.query import customer_queries
 
 
 def main(args):
@@ -140,7 +140,7 @@ def get_query(index: str = "1"):
         }.get(index, "0")
 
 
-if __name__ == "__main__":
+def run(**kwargs):
     parser = argparse.ArgumentParser(description="NLP Assignment Command Line")
 
     parser.add_argument(
@@ -182,3 +182,7 @@ if __name__ == "__main__":
         args.question = preprocess_query(args.question)
         # print(args.question)
         main(args)
+
+
+if __name__ == "__main__":
+    run()

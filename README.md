@@ -70,6 +70,13 @@ files khác:
 
 ## 3. Chạy mẫu
 
+Run by Docker
+
+```sh
+docker build --network=host -t nlp222 .
+docker run --rm -v $S_OUT:/nlp/output -v $S_IN:/nlp/input nlp222
+```
+
 Use default arguments:
 
 ```sh

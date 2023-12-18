@@ -1,1 +1,1 @@
-(PRINT-ALL ?t3 (TOUR ?tr) (ATIME ?tr NT ?at) (DTIME ?tr HCM ?dt) (RUN-TIME ?tr HCM NT t3) (BY ?tr ?ve))
+(PRINT-ALL-RANGE ?d2 (TOUR ?tr) (ATIME ?tr NT ?at) (DTIME ?tr ?dl ?dt) (RUN-TIME ?tr ?dl NT ?rt) (BY ?tr ?ve))

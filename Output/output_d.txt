@@ -1,1 +1,1 @@
-WHQUERY(?np (SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t3 n))))
+WHQUERY(DEST(TOUR(NAME('NhaTrang'))) WHICH(d2 PLURAL(DAY)))

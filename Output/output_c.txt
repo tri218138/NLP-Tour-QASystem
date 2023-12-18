@@ -1,17 +1,11 @@
-(S[GAP=?np, SEM=<WHQUERY(?np,(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t3,n))))>]
-  (VP[SEM=<(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))) & IN(\n.HOWLONG(t2,n)))>]
-    (VP[SEM=<(SOURCE(TOUR(NAME('HoChiMinh'))) & DEST(TOUR(NAME('NhaTrang'))))>]
-      (VP[SEM=<SOURCE(TOUR(NAME('HoChiMinh')))>, VAR=?v]
-        (V[] đi)
-        (PP[SEM=<SOURCE(TOUR(NAME('HoChiMinh')))>]
-          (P-LEAVE[SEM=<LEAVE>] từ)
-          (TOUR-CNP[SEM=<TOUR(NAME('HoChiMinh'))>]
-            (TOUR-NAME[SEM=<NAME('HoChiMinh')>] Hồ_Chí_Minh))))
-      (PP[SEM=<DEST(TOUR(NAME('NhaTrang')))>]
-        (P-ARRIVE[SEM=<ARRIVE>] tới)
-        (TOUR-CNP[SEM=<TOUR(NAME('NhaTrang'))>]
-          (TOUR-NAME[SEM=<NAME('NhaTrang')>] Nha_Trang))))
-    (PP[SEM=<IN(\n.HOWLONG(t3,n))>]
-      (P[SEM=<IN>] hết)
-      (NP[SEM=<\n.HOWLONG(t2,n)>]
-        (HOWLONG-QDET[SEM=<\t.HOWLONG(t)>, VAR=<t1>] bao_lâu)))))
+(S[SEM=<WHQUERY(DEST(TOUR(NAME('NhaTrang'))),WHICH(d2,PLURAL(DAY)))>]
+  (VP[SEM=<DEST(TOUR(NAME('NhaTrang')))>]
+    đi
+    (TOUR-CNP[SEM=<TOUR(NAME('NhaTrang'))>]
+      (TOUR-NAME[SEM=<NAME('NhaTrang')>] Nha_Trang)))
+  có
+  (NP[SEM=<WHICH(d3,PLURAL(DAY))>]
+    (DAY-CNP[SEM=<PLURAL(DAY)>, VAR=<d2>]
+      (DET[SEM=<PLURAL>] những)
+      (DAY-N[SEM=<DAY>, VAR=<d1>] ngày))
+    (WHICH-QDET[SEM=<\x.WHICH(x)>] nào)))

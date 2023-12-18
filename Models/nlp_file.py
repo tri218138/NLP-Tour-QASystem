@@ -24,7 +24,7 @@ file_name = [
 
 def write_file(question_number, content, append=False):
     file = open(
-        "Output/" + file_name[question_number - 1],
+        "output/" + file_name[question_number - 1],
         "a" if append else "w",
         encoding="utf-8",
     )
